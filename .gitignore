@@ -30,3 +30,6 @@ Thumbs.db
 *.tfstate
 *.tfstate.backup
 .terraform/
+
+# Project memory (runtime data)
+memory/*/
