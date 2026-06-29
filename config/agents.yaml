@@ -1,0 +1,92 @@
+# config/agents.yaml
+# Registro de todos los agentes de LRA AI Platform.
+# Define qué agentes están activos y qué tools pueden usar.
+
+agents:
+
+  founder:
+    name: "Founder Agent"
+    role: "Project Initializer"
+    description: "Inicializa proyectos nuevos, descubre requisitos y genera la estructura base."
+    active: true
+    tools:
+      - github
+      - linux
+
+  cloud_architect:
+    name: "Cloud Architect"
+    role: "Architecture Designer"
+    description: "Diseña arquitecturas cloud multi-proveedor siguiendo Well-Architected Framework."
+    active: true
+    tools:
+      - aws
+      - azure
+      - gcp
+      - terraform
+      - github
+
+  devops:
+    name: "DevOps Engineer"
+    role: "Automation Specialist"
+    description: "Gestiona CI/CD, contenedores, Kubernetes y automatización de infraestructura."
+    active: true
+    tools:
+      - github
+      - docker
+      - kubernetes
+      - helm
+      - terraform
+      - argocd
+
+  security:
+    name: "Security Engineer"
+    role: "Security Specialist"
+    description: "Analiza vulnerabilidades, revisa configuraciones y gestiona secretos."
+    active: true
+    tools:
+      - trivy
+      - checkov
+      - vault
+      - snyk
+      - github
+
+  sre:
+    name: "SRE"
+    role: "Reliability Engineer"
+    description: "Gestiona observabilidad, alertas, SLOs y respuesta a incidentes."
+    active: true
+    tools:
+      - prometheus
+      - grafana
+      - loki
+      - tempo
+      - aws
+
+  openshift:
+    name: "OpenShift Agent"
+    role: "OpenShift Specialist"
+    description: "Gestiona clusters OpenShift, Operators, Pipelines y Service Mesh."
+    active: true
+    tools:
+      - openshift
+      - kubernetes
+      - github
+
+  documentation:
+    name: "Documentation Agent"
+    role: "Technical Writer"
+    description: "Genera y mantiene README, ADR, Runbooks y Architecture docs."
+    active: true
+    tools:
+      - github
+      - linux
+
+  reviewer:
+    name: "Reviewer"
+    role: "Code Reviewer"
+    description: "Revisa Pull Requests analizando calidad, seguridad y rendimiento."
+    active: true
+    tools:
+      - github
+      - trivy
+      - checkov

@@ -1,0 +1,269 @@
+# config/tools.yaml
+# Catálogo de todas las tools de LRA AI Platform.
+
+tools:
+
+  # Version Control
+  github:
+    name: "GitHub Tool"
+    category: "vcs"
+    path: "tools/vcs/github"
+    active: true
+    actions:
+      - create_repo
+      - clone_repo
+      - create_branch
+      - create_pr
+      - merge_pr
+      - review_pr
+      - create_issue
+      - list_repos
+      - get_file
+      - create_file
+      - update_file
+
+  # Cloud Providers
+  aws:
+    name: "AWS Tool"
+    category: "cloud"
+    path: "tools/cloud/aws"
+    active: true
+    actions:
+      - create_eks_cluster
+      - create_vpc
+      - create_s3_bucket
+      - create_rds
+      - create_ecr
+      - deploy_lambda
+      - create_iam_role
+      - describe_instances
+      - create_cloudwatch_alarm
+
+  azure:
+    name: "Azure Tool"
+    category: "cloud"
+    path: "tools/cloud/azure"
+    active: false
+    actions:
+      - create_aks_cluster
+      - create_vnet
+      - create_storage
+      - create_function
+      - create_key_vault
+
+  gcp:
+    name: "GCP Tool"
+    category: "cloud"
+    path: "tools/cloud/gcp"
+    active: false
+    actions:
+      - create_gke_cluster
+      - create_vpc
+      - create_storage
+      - create_cloud_run
+
+  vmware:
+    name: "VMware Tool"
+    category: "cloud"
+    path: "tools/cloud/vmware"
+    active: true
+    actions:
+      - create_vm
+      - clone_vm
+      - snapshot_create
+      - snapshot_restore
+      - list_vms
+      - start_vm
+      - stop_vm
+      - get_resources
+
+  # Containers
+  docker:
+    name: "Docker Tool"
+    category: "containers"
+    path: "tools/containers/docker"
+    active: true
+    actions:
+      - build_image
+      - push_image
+      - pull_image
+      - run_container
+      - list_containers
+      - stop_container
+
+  kubernetes:
+    name: "Kubernetes Tool"
+    category: "containers"
+    path: "tools/containers/kubernetes"
+    active: true
+    actions:
+      - apply_manifest
+      - delete_manifest
+      - get_pods
+      - get_services
+      - get_deployments
+      - scale_deployment
+      - get_logs
+      - exec_command
+
+  openshift:
+    name: "OpenShift Tool"
+    category: "containers"
+    path: "tools/containers/openshift"
+    active: true
+    actions:
+      - create_project
+      - deploy_app
+      - create_pipeline
+      - install_operator
+      - get_routes
+      - apply_manifest
+
+  helm:
+    name: "Helm Tool"
+    category: "containers"
+    path: "tools/containers/helm"
+    active: true
+    actions:
+      - install_chart
+      - upgrade_chart
+      - uninstall_chart
+      - list_releases
+      - add_repo
+
+  podman:
+    name: "Podman Tool"
+    category: "containers"
+    path: "tools/containers/podman"
+    active: true
+    actions:
+      - build_image
+      - push_image
+      - pull_image
+      - run_container
+      - list_containers
+      - stop_container
+
+  buildah:
+    name: "Buildah Tool"
+    category: "containers"
+    path: "tools/containers/buildah"
+    active: true
+    actions:
+      - build_image
+      - push_image
+      - from_image
+      - run_command
+      - commit_image
+
+  skopeo:
+    name: "Skopeo Tool"
+    category: "containers"
+    path: "tools/containers/skopeo"
+    active: true
+    actions:
+      - copy_image
+      - inspect_image
+      - delete_image
+      - list_tags
+      - sync_registry
+
+  # IaC
+  terraform:
+    name: "Terraform Tool"
+    category: "iac"
+    path: "tools/iac/terraform"
+    active: true
+    actions:
+      - init
+      - plan
+      - apply
+      - destroy
+      - validate
+      - format
+
+  ansible:
+    name: "Ansible Tool"
+    category: "iac"
+    path: "tools/iac/ansible"
+    active: true
+    actions:
+      - run_playbook
+      - run_adhoc
+      - list_inventory
+      - check_syntax
+      - install_role
+      - encrypt_vault
+      - decrypt_vault
+
+  ansible_automation_platform:
+    name: "Ansible Automation Platform Tool"
+    category: "iac"
+    path: "tools/iac/ansible_automation_platform"
+    active: false
+    actions:
+      - launch_job_template
+      - list_inventories
+      - list_job_templates
+      - get_job_status
+
+  vagrant:
+    name: "Vagrant Tool"
+    category: "iac"
+    path: "tools/iac/vagrant"
+    active: true
+    actions:
+      - up
+      - halt
+      - destroy
+      - ssh
+      - provision
+      - status
+      - snapshot_save
+      - snapshot_restore
+
+  # CI/CD
+  jenkins:
+    name: "Jenkins Tool"
+    category: "cicd"
+    path: "tools/cicd/jenkins"
+    active: true
+    actions:
+      - trigger_job
+      - get_job_status
+      - get_build_log
+      - create_job
+      - list_jobs
+      - cancel_build
+
+  argocd:
+    name: "ArgoCD Tool"
+    category: "cicd"
+    path: "tools/cicd/argocd"
+    active: true
+    actions:
+      - sync_app
+      - get_app_status
+      - create_app
+      - delete_app
+      - list_apps
+      - rollback_app
+
+  sonarqube:
+    name: "SonarQube Tool"
+    category: "cicd"
+    path: "tools/cicd/sonarqube"
+    active: true
+    actions:
+      - scan_project
+      - get_quality_gate
+      - list_issues
+      - get_metrics
+
+  nexus:
+    name: "Nexus Tool"
+    category: "cicd"
+    path: "tools/cicd/nexus"
+    active: true
+    actions:
+      - upload_artifact
