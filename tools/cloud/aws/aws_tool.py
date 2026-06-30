@@ -5,10 +5,10 @@
 import os
 import boto3
 from botocore.exceptions import ClientError, BotoCoreError
-from core.interfaces.tool import Tool
+from tools.cloud.base_cloud_tool import BaseCloudTool
 
 
-class AWSTool(Tool):
+class AWSTool(BaseCloudTool):
     """
     Tool para interactuar con AWS via boto3.
 
@@ -23,7 +23,7 @@ class AWSTool(Tool):
     """
 
     def __init__(self):
-        super().__init__(name="aws", version="1.0.0")
+        super().__init__(name="aws", provider="aws", version="1.0.0")
         self._region = os.getenv("AWS_DEFAULT_REGION", "eu-west-1")
         self._clients: dict = {}
 
@@ -71,14 +71,6 @@ class AWSTool(Tool):
         ]
 
     def execute(self, action: str, params: dict = {}) -> dict:
-        """
-        Ejecuta una acción AWS.
-
-        Ejemplo:
-            aws.execute("list_s3_buckets", {})
-            aws.execute("describe_eks_cluster", {"name": "lra-prod"})
-            aws.execute("create_s3_bucket", {"name": "lra-backups", "region": "eu-west-1"})
-        """
         if action not in self.get_capabilities():
             raise ValueError(
                 f"Action '{action}' not supported. "
@@ -86,24 +78,24 @@ class AWSTool(Tool):
             )
 
         actions = {
-            "get_caller_identity":    self._get_caller_identity,
-            "list_s3_buckets":        self._list_s3_buckets,
-            "create_s3_bucket":       self._create_s3_bucket,
-            "list_ec2_instances":     self._list_ec2_instances,
-            "describe_instances":     self._list_ec2_instances,
-            "list_eks_clusters":      self._list_eks_clusters,
-            "describe_eks_cluster":   self._describe_eks_cluster,
-            "create_eks_cluster":     self._create_eks_cluster,
-            "list_ecr_repos":         self._list_ecr_repos,
-            "create_ecr_repo":        self._create_ecr_repo,
-            "list_iam_users":         self._list_iam_users,
-            "get_iam_user":           self._get_iam_user,
-            "create_iam_role":        self._create_iam_role,
-            "list_vpcs":              self._list_vpcs,
-            "describe_vpc":           self._describe_vpc,
-            "list_cloudwatch_alarms": self._list_cloudwatch_alarms,
+            "get_caller_identity":     self._get_caller_identity,
+            "list_s3_buckets":         self._list_s3_buckets,
+            "create_s3_bucket":        self._create_s3_bucket,
+            "list_ec2_instances":      self._list_ec2_instances,
+            "describe_instances":      self._list_ec2_instances,
+            "list_eks_clusters":       self._list_eks_clusters,
+            "describe_eks_cluster":    self._describe_eks_cluster,
+            "create_eks_cluster":      self._create_eks_cluster,
+            "list_ecr_repos":          self._list_ecr_repos,
+            "create_ecr_repo":         self._create_ecr_repo,
+            "list_iam_users":          self._list_iam_users,
+            "get_iam_user":            self._get_iam_user,
+            "create_iam_role":         self._create_iam_role,
+            "list_vpcs":               self._list_vpcs,
+            "describe_vpc":            self._describe_vpc,
+            "list_cloudwatch_alarms":  self._list_cloudwatch_alarms,
             "create_cloudwatch_alarm": self._create_cloudwatch_alarm,
-            "get_cloudwatch_metrics": self._get_cloudwatch_metrics,
+            "get_cloudwatch_metrics":  self._get_cloudwatch_metrics,
         }
 
         try:
@@ -112,6 +104,26 @@ class AWSTool(Tool):
             return {"error": e.response["Error"]["Message"], "action": action}
         except BotoCoreError as e:
             return {"error": str(e), "action": action}
+
+    # --- BaseCloudTool interface ---
+
+    def get_identity(self) -> dict:
+        return self._get_caller_identity({})
+
+    def list_compute(self, params: dict = None) -> dict:
+        return self._list_ec2_instances(params or {})
+
+    def list_storage(self, params: dict = None) -> dict:
+        return self._list_s3_buckets(params or {})
+
+    def list_networks(self, params: dict = None) -> dict:
+        return self._list_vpcs(params or {})
+
+    def list_kubernetes(self, params: dict = None) -> dict:
+        return self._list_eks_clusters(params or {})
+
+    def list_registries(self, params: dict = None) -> dict:
+        return self._list_ecr_repos(params or {})
 
     # --- Implementaciones ---
 
@@ -181,16 +193,11 @@ class AWSTool(Tool):
         }
 
     def _create_eks_cluster(self, params: dict) -> dict:
-        """
-        Crea un cluster EKS. Requiere roleArn y subnetIds preexistentes.
-        En producción real estos vienen de los outputs de Terraform.
-        """
         name = params.get("name")
         region = params.get("region", self._region)
         role_arn = params.get("role_arn")
         subnet_ids = params.get("subnet_ids", [])
         version = params.get("version", "1.29")
-
         eks = self._get_client("eks", region)
         response = eks.create_cluster(
             name=name,

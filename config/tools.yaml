@@ -43,7 +43,7 @@ tools:
     name: "Azure Tool"
     category: "cloud"
     path: "tools/cloud/azure"
-    active: false
+    active: true
     actions:
       - create_aks_cluster
       - create_vnet
@@ -55,7 +55,7 @@ tools:
     name: "GCP Tool"
     category: "cloud"
     path: "tools/cloud/gcp"
-    active: false
+    active: true
     actions:
       - create_gke_cluster
       - create_vpc
