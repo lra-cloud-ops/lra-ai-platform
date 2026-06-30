@@ -1,187 +1,126 @@
 # agents/founder_agent.py
-# Founder Agent — inicializa proyectos nuevos en LRA CloudOps.
-# Es el primer agente que trabaja cuando se crea un proyecto desde cero.
+# Founder Agent — v2.0, arquitectura Task-céntrica (TASK_ENGINE.md §11)
+# Ejecuta Tasks individuales asignadas por el WorkflowEngine.
+# Ya no orquesta su propio flujo — solo recibe y ejecuta una Task a la vez.
 
 from core.interfaces.agent import Agent
-from core.event_bus import Event
+from core.interfaces.task import Task, TaskStatus
 
 
 class FounderAgent(Agent):
     """
-    Founder Agent de LRA AI Platform.
+    Founder Agent de LRA AI Platform — v2.0
 
-    Responsabilidades:
-        1. Descubrir requisitos del proyecto
-        2. Diseñar la estructura de carpetas
-        3. Crear el repositorio en GitHub
-        4. Generar documentación base (README, ARCHITECTURE, ROADMAP)
-        5. Registrar el proyecto en la memoria de la plataforma
+    Especialidad: inicialización de proyectos nuevos.
+    Ejecuta Tasks individuales del dominio de creación de proyectos.
+
+    Tasks que sabe ejecutar:
+        create_repository      → crea un repo en GitHub
+        generate_documentation → genera README, ARCHITECTURE, ROADMAP
+        create_file            → crea un archivo en un repo
+        list_projects          → lista repos de la organización
 
     Tools que usa:
-        - github → crear repo, crear archivos, crear ramas
-        - linux  → operaciones de sistema de archivos (futuro)
-
-    Uso:
-        founder = FounderAgent(name="Founder Agent", role="Project Initializer", description="...")
-        founder.register_tool(github_tool)
-        founder.run("init project", {
-            "name": "observability-platform",
-            "description": "Plataforma de observabilidad con Prometheus y Grafana",
-            "org": "lra-cloud-ops",
-            "stack": ["Prometheus", "Grafana", "Loki", "Tempo"],
-            "private": False
-        })
+        - github → crear repo, crear archivos, listar repos
     """
+
+    # Mapa de tipo de Task a método interno
+    _TASK_HANDLERS = [
+        "create_repository",
+        "generate_documentation",
+        "create_file",
+        "list_projects",
+    ]
+
+    def execute_task(self, task: Task) -> dict:
+        """
+        Ejecuta una Task individual asignada por el WorkflowEngine.
+        Ver TASK_ENGINE.md §11 — el Agent ya no decide el flujo,
+        solo ejecuta la Capability indicada en task.capability o task.type.
+        """
+        handlers = {
+            "create_repository":     self._create_repository,
+            "generate_documentation": self._generate_documentation,
+            "create_file":           self._create_file,
+            "list_projects":         self._list_projects,
+        }
+
+        handler = handlers.get(task.type)
+        if handler is None:
+            raise ValueError(
+                f"FounderAgent does not handle task type '{task.type}'. "
+                f"Supported: {list(handlers.keys())}"
+            )
+
+        return handler(task.params)
 
     def run(self, task: str, context: dict = {}) -> dict:
         """
-        Ejecuta una tarea de inicialización de proyecto.
-
-        Tareas soportadas:
-            "init project"     → crea repo + estructura + documentación
-            "create repo"      → solo crea el repositorio
-            "generate docs"    → solo genera la documentación base
-            "list projects"    → lista repos de la organización
+        Compatibilidad v1.0 — mantiene el método run() para no romper
+        scripts o pruebas existentes. Internamente delega a execute_task().
         """
-        print(f"\n[FounderAgent] Starting task: '{task}'")
-
-        tasks = {
-            "init project":  self._init_project,
-            "create repo":   self._create_repo,
-            "generate docs": self._generate_docs,
-            "list projects": self._list_projects,
-        }
-
-        if task not in tasks:
-            return {
-                "error": f"Task '{task}' not supported.",
-                "available_tasks": list(tasks.keys())
-            }
-
-        result = tasks[task](context)
-        print(f"[FounderAgent] Task '{task}' completed.")
-        return result
+        from core.interfaces.task import Task
+        t = Task(type=task.replace(" ", "_"), params=context, assigned_to="founder")
+        return self.execute_task(t)
 
     def get_status(self) -> dict:
-        """Retorna el estado actual del agente."""
         return {
             "name": self.name,
             "role": self.role,
             "active": self.active,
             "tools": list(self.tools.keys()),
+            "supported_tasks": self._TASK_HANDLERS,
         }
 
-    def _init_project(self, context: dict) -> dict:
-        """
-        Inicializa un proyecto completo desde cero.
-        Crea el repo y genera toda la documentación base.
-        """
-        name        = context.get("name")
-        description = context.get("description", "")
-        org         = context.get("org", "lra-cloud-ops")
-        stack       = context.get("stack", [])
-        private     = context.get("private", False)
+    # --- Implementaciones de cada Task ---
 
-        if not name:
-            return {"error": "Project name is required."}
+    def _create_repository(self, params: dict) -> dict:
+        """Crea un repositorio en GitHub."""
+        github = self.get_tool("github")
+        result = github.execute("create_repo", {
+            "name": params.get("name"),
+            "description": params.get("description", ""),
+            "org": params.get("org", "lra-cloud-ops"),
+            "private": params.get("private", False),
+        })
+        print(f"[FounderAgent] Repository created: {result.get('url')}")
+        return result
 
-        print(f"[FounderAgent] Initializing project: {name}")
+    def _generate_documentation(self, params: dict) -> dict:
+        """Genera README, ARCHITECTURE y ROADMAP en el repo."""
+        github = self.get_tool("github")
+        name = params.get("name")
+        org  = params.get("org", "lra-cloud-ops")
+        desc = params.get("description", "")
+        stack = params.get("stack", [])
         results = {}
 
-        # 1. Crear el repositorio
-        print(f"[FounderAgent] Creating repository {org}/{name}...")
-        github = self.get_tool("github")
-        repo_result = github.execute("create_repo", {
-            "name": name,
-            "description": description,
-            "org": org,
-            "private": private,
-        })
-        results["repo"] = repo_result
-        print(f"[FounderAgent] Repository created: {repo_result.get('url')}")
-
-        # 2. Generar documentación base
-        print(f"[FounderAgent] Generating base documentation...")
-        docs_result = self._generate_docs({
-            "name": name,
-            "description": description,
-            "org": org,
-            "stack": stack,
-        })
-        results["docs"] = docs_result
-
-        return {
-            "project": name,
-            "org": org,
-            "url": repo_result.get("url"),
-            "results": results,
-            "status": "initialized",
+        docs = {
+            "README.md":       self._build_readme(name, desc, stack),
+            "ARCHITECTURE.md": self._build_architecture(name, desc, stack),
+            "ROADMAP.md":      self._build_roadmap(name),
         }
 
-    def _create_repo(self, context: dict) -> dict:
-        """Crea únicamente el repositorio en GitHub."""
-        github = self.get_tool("github")
-        return github.execute("create_repo", {
-            "name": context.get("name"),
-            "description": context.get("description", ""),
-            "org": context.get("org", "lra-cloud-ops"),
-            "private": context.get("private", False),
-        })
-
-    def _generate_docs(self, context: dict) -> dict:
-        """
-        Genera la documentación base del proyecto:
-            - README.md
-            - ARCHITECTURE.md
-            - ROADMAP.md
-        """
-        github  = self.get_tool("github")
-        name    = context.get("name")
-        desc    = context.get("description", "")
-        org     = context.get("org", "lra-cloud-ops")
-        stack   = context.get("stack", [])
-        results = {}
-
-        # README.md
-        readme = self._build_readme(name, desc, stack)
-        results["README"] = github.execute("create_file", {
-            "repo": name,
-            "org": org,
-            "path": "README.md",
-            "content": readme,
-            "message": "docs: add README.md",
-        })
-        print(f"[FounderAgent] README.md created.")
-
-        # ARCHITECTURE.md
-        architecture = self._build_architecture(name, desc, stack)
-        results["ARCHITECTURE"] = github.execute("create_file", {
-            "repo": name,
-            "org": org,
-            "path": "ARCHITECTURE.md",
-            "content": architecture,
-            "message": "docs: add ARCHITECTURE.md",
-        })
-        print(f"[FounderAgent] ARCHITECTURE.md created.")
-
-        # ROADMAP.md
-        roadmap = self._build_roadmap(name)
-        results["ROADMAP"] = github.execute("create_file", {
-            "repo": name,
-            "org": org,
-            "path": "ROADMAP.md",
-            "content": roadmap,
-            "message": "docs: add ROADMAP.md",
-        })
-        print(f"[FounderAgent] ROADMAP.md created.")
+        for path, content in docs.items():
+            results[path] = github.execute("create_file", {
+                "repo": name, "org": org, "path": path,
+                "content": content, "message": f"docs: add {path}",
+            })
+            print(f"[FounderAgent] {path} created.")
 
         return results
 
-    def _list_projects(self, context: dict) -> dict:
-        """Lista todos los repositorios de la organización."""
+    def _create_file(self, params: dict) -> dict:
+        """Crea un archivo arbitrario en un repo."""
         github = self.get_tool("github")
-        org = context.get("org", "lra-cloud-ops")
-        return github.execute("list_repos", {"org": org})
+        return github.execute("create_file", params)
+
+    def _list_projects(self, params: dict) -> dict:
+        """Lista repos de la organización."""
+        github = self.get_tool("github")
+        return github.execute("list_repos", {
+            "org": params.get("org", "lra-cloud-ops")
+        })
 
     # --- Generadores de documentación ---
 
@@ -193,7 +132,8 @@ class FounderAgent(Agent):
 
 ## Overview
 
-This project is part of the **LRA CloudOps** organization and is managed by **LRA AI Platform**.
+This project is part of the **LRA CloudOps** organization and is managed
+by **LRA AI Platform**.
 
 ## Tech Stack
 
@@ -211,12 +151,8 @@ cd {name}
 - [Architecture](ARCHITECTURE.md)
 - [Roadmap](ROADMAP.md)
 
-## Team
-
-**LRA CloudOps** — Ruben Liquenson, Kelvin Osaigbovo, Darwin Pochet
-
 ---
-*Generated by LRA AI Platform — Founder Agent*
+*Generated by LRA AI Platform — Founder Agent v2.0*
 """
 
     def _build_architecture(self, name: str, description: str, stack: list) -> str:
@@ -237,14 +173,12 @@ cd {name}
 |----------|-----------|
 | TBD | TBD |
 
-## Architecture Diagram
-
 ## ADR (Architecture Decision Records)
 
 - ADR-001: Initial architecture definition
 
 ---
-*Generated by LRA AI Platform — Founder Agent*
+*Generated by LRA AI Platform — Founder Agent v2.0*
 """
 
     def _build_roadmap(self, name: str) -> str:
@@ -266,5 +200,5 @@ cd {name}
 - [ ] Production deployment
 
 ---
-*Generated by LRA AI Platform — Founder Agent*
+*Generated by LRA AI Platform — Founder Agent v2.0*
 """

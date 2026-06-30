@@ -87,16 +87,28 @@ class ToolManager:
                 f"Error: {e}"
             )
 
+    # Overrides para siglas que no siguen PascalCase estándar
+    # Ver PLUGIN_SYSTEM.md §7 — excepción conocida documentada
+    _CLASS_NAME_OVERRIDES = {
+        "github": "GitHubTool",
+        "aws": "AWSTool",
+        "gcp": "GCPTool",
+    }
+
     def _to_class_name(self, name: str) -> str:
         """
         Convierte el nombre de una tool a nombre de clase Python.
+        Usa overrides para siglas que no siguen PascalCase estándar.
+        Ver PLUGIN_SYSTEM.md §7.
 
         Ejemplos:
-            github              → GitHubTool
-            aws                 → AWSTool
+            github              → GitHubTool  (override)
+            aws                 → AWSTool     (override)
             kubernetes          → KubernetesTool
             ansible_automation_platform → AnsibleAutomationPlatformTool
         """
+        if name in self._CLASS_NAME_OVERRIDES:
+            return self._CLASS_NAME_OVERRIDES[name]
         return "".join(word.capitalize() for word in name.split("_")) + "Tool"
 
     def register_tool(self, name: str, tool: Tool) -> None:

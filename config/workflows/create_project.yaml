@@ -1,8 +1,11 @@
 # config/workflows/create_project.yaml
-# Workflow: create_project — plantilla reutilizable (WORKFLOW_ENGINE.md §2)
+# Workflow: create_project — v1.0
+# Solo usa Tasks implementadas en FounderAgent (Fase 1).
+# create_branch, run_tests, deploy etc. se añaden en Fase 3
+# cuando DevOps Agent esté implementado.
 
 name: create_project
-description: "Crea un proyecto nuevo con repo, branch inicial, tests y documentacion"
+description: "Crea un proyecto nuevo con repo y documentacion base"
 keywords:
   - "crea un proyecto"
   - "crea una plataforma"
@@ -14,22 +17,7 @@ tasks:
     assigned_to: founder
     capability: create_repository
 
-  - type: create_branch
-    assigned_to: devops
-    capability: create_branch
-    depends_on: [create_repository]
-
-  - type: run_tests
-    assigned_to: devops
-    capability: run_tests
-    depends_on: [create_branch]
-
   - type: generate_documentation
-    assigned_to: documentation
+    assigned_to: founder
     capability: generate_documentation
-    depends_on: [create_branch]
-
-  - type: create_pull_request
-    assigned_to: devops
-    capability: create_pull_request
-    depends_on: [run_tests, generate_documentation]
+    depends_on: [create_repository]
