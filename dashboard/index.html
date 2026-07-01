@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LRA AI Platform — Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    header {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #238636, #1f6feb);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .logo h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #e6edf3;
+    }
+
+    .logo span {
+      font-size: 12px;
+      color: #8b949e;
+    }
+
+    .header-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #3fb950;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #3fb950;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* Layout */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px 32px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .full-width { grid-column: 1 / -1; }
+
+    /* Cards */
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .card-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: #21262d;
+      color: #8b949e;
+    }
+
+    /* Stat cards */
+    .stat {
+      text-align: center;
+      padding: 8px 0;
+    }
+
+    .stat-number {
+      font-size: 42px;
+      font-weight: 700;
+      line-height: 1;
+      background: linear-gradient(135deg, #58a6ff, #3fb950);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: #8b949e;
+      margin-top: 6px;
+    }
+
+    /* Agent list */
+    .agent-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #21262d;
+    }
+
+    .agent-item:last-child { border-bottom: none; }
+
+    .agent-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #e6edf3;
+    }
+
+    .agent-role {
+      font-size: 12px;
+      color: #8b949e;
+      margin-top: 2px;
+    }
+
+    .agent-tools {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      max-width: 200px;
+    }
+
+    .tool-tag {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #1f6feb22;
+      color: #58a6ff;
+      border: 1px solid #1f6feb44;
+    }
+
+    /* Cloud summary */
+    .cloud-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .cloud-card {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .cloud-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #8b949e;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+
+    .cloud-metric {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      padding: 3px 0;
+    }
+
+    .cloud-metric-label { color: #8b949e; }
+    .cloud-metric-value { color: #e6edf3; font-weight: 500; }
+
+    /* Intent form */
+    .intent-form {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .intent-input {
+      flex: 1;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 10px 16px;
+      color: #e6edf3;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .intent-input:focus { border-color: #1f6feb; }
+    .intent-input::placeholder { color: #8b949e; }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #238636;
+      color: white;
+    }
+    .btn-primary:hover { background: #2ea043; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-secondary {
+      background: #21262d;
+      color: #e6edf3;
+      border: 1px solid #30363d;
+    }
+    .btn-secondary:hover { background: #30363d; }
+
+    /* Workflow chips */
+    .workflow-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .workflow-chip {
+      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: #21262d;
+      color: #8b949e;
+      border: 1px solid #30363d;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .workflow-chip:hover {
+      background: #1f6feb22;
+      color: #58a6ff;
+      border-color: #1f6feb44;
+    }
+
+    /* Plan result */
+    .plan-result {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      max-height: 300px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .plan-result.visible { display: block; }
+
+    .task-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+    }
+
+    .task-number {
+      color: #8b949e;
+      min-width: 20px;
+    }
+
+    .task-type { color: #58a6ff; }
+    .task-arrow { color: #30363d; }
+    .task-agent { color: #3fb950; }
+    .task-parallel {
+      font-size: 11px;
+      color: #f0883e;
+      background: #f0883e22;
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+
+    /* Audit log */
+    .audit-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #21262d;
+    }
+
+    .audit-item:last-child { border-bottom: none; }
+
+    .audit-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .audit-approved { background: #23863622; color: #3fb950; }
+    .audit-denied   { background: #da363622; color: #f85149; }
+
+    .audit-content { flex: 1; }
+    .audit-task { font-size: 13px; color: #e6edf3; }
+    .audit-meta { font-size: 11px; color: #8b949e; margin-top: 2px; }
+    .audit-decision {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .audit-decision.approved {
+      background: #23863622;
+      color: #3fb950;
+    }
+    .audit-decision.denied {
+      background: #da363622;
+      color: #f85149;
+    }
+
+    /* Tools grid */
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 8px;
+    }
+
+    .tool-item {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .tool-icon { font-size: 20px; margin-bottom: 4px; }
+    .tool-name { font-size: 11px; color: #8b949e; }
+    .tool-category {
+      font-size: 10px;
+      color: #58a6ff;
+      margin-top: 2px;
+    }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      color: #8b949e;
+      padding: 20px;
+      font-size: 13px;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #30363d;
+      border-top-color: #58a6ff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 20px;
+    }
+
+    .badge-green { background: #23863622; color: #3fb950; border: 1px solid #23863644; }
+    .badge-blue  { background: #1f6feb22; color: #58a6ff; border: 1px solid #1f6feb44; }
+    .badge-orange { background: #f0883e22; color: #f0883e; border: 1px solid #f0883e44; }
+
+    /* Refresh button */
+    .refresh-btn {
+      background: none;
+      border: none;
+      color: #8b949e;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 4px;
+      border-radius: 4px;
+      transition: color 0.2s;
+    }
+    .refresh-btn:hover { color: #e6edf3; }
+
+    /* Error */
+    .error-msg {
+      color: #f85149;
+      font-size: 12px;
+      padding: 8px 12px;
+      background: #f8514922;
+      border-radius: 6px;
+      border: 1px solid #f8514944;
+    }
+
+    /* Section divider */
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #e6edf3;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #30363d;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🤖</div>
+    <div>
+      <h1>LRA AI Platform</h1>
+      <span>DevOps & Platform Engineering</span>
+    </div>
+  </div>
+  <div class="header-status">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="headerStatus">Connecting...</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Stats Row -->
+  <div class="grid-3" style="margin-bottom: 20px;">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Agents</span>
+        <span class="card-badge">Active</span>
+      </div>
+      <div class="stat">
+        <div class="stat-number" id="agentCount">—</div>
+        <div class="stat-label">AI Agents Available</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Tools</span>
+        <span class="card-badge">Integrated</span>
+      </div>
+      <div class="stat">
+        <div class="stat-number" id="toolCount">—</div>
+        <div class="stat-label">Tools Connected</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Workflows</span>
+        <span class="card-badge">Registered</span>
+      </div>
+      <div class="stat">
+        <div class="stat-number" id="workflowCount">—</div>
+        <div class="stat-label">Workflow Templates</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Grid -->
+  <div class="grid">
+
+    <!-- Agents Panel -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🤖 Agents</span>
+        <button class="refresh-btn" onclick="loadAgents()">↻</button>
+      </div>
+      <div id="agentList">
+        <div class="loading"><span class="spinner"></span>Loading agents...</div>
+      </div>
+    </div>
+
+    <!-- Execute Plan Panel -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">⚡ Execute Plan</span>
+        <span class="card-badge" id="envBadge">development</span>
+      </div>
+
+      <div class="workflow-chips" id="workflowChips">
+        <div class="loading"><span class="spinner"></span></div>
+      </div>
+
+      <div class="intent-form">
+        <input
+          type="text"
+          class="intent-input"
+          id="intentInput"
+          placeholder="e.g. Crea un proyecto llamado my-api"
+        />
+        <button class="btn btn-secondary" onclick="generatePlan()">Plan</button>
+        <button class="btn btn-primary" onclick="executePlan()" id="execBtn">Run</button>
+      </div>
+
+      <div class="plan-result" id="planResult"></div>
+    </div>
+
+  </div>
+
+  <!-- Cloud Review -->
+  <div class="card" style="margin-bottom: 20px;">
+    <div class="card-header">
+      <span class="card-title">☁️ Cloud Infrastructure</span>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-secondary" onclick="reviewCloud('aws')" style="padding:6px 12px; font-size:12px;">AWS</button>
+        <button class="btn btn-secondary" onclick="reviewCloud('azure')" style="padding:6px 12px; font-size:12px;">Azure</button>
+        <button class="btn btn-secondary" onclick="reviewCloud('gcp')" style="padding:6px 12px; font-size:12px;">GCP</button>
+        <button class="btn btn-primary" onclick="reviewCloud('multicloud')" style="padding:6px 12px; font-size:12px;">Multi-Cloud</button>
+      </div>
+    </div>
+    <div id="cloudResult">
+      <div style="text-align:center; color:#8b949e; padding:20px; font-size:13px;">
+        Click a cloud provider to review infrastructure
+      </div>
+    </div>
+  </div>
+
+  <!-- Tools + Audit -->
+  <div class="grid">
+
+    <!-- Tools Panel -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🔧 Tools</span>
+        <button class="refresh-btn" onclick="loadTools()">↻</button>
+      </div>
+      <div id="toolsList">
+        <div class="loading"><span class="spinner"></span>Loading tools...</div>
+      </div>
+    </div>
+
+    <!-- Audit Log -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📋 Audit Log</span>
+        <button class="refresh-btn" onclick="loadAudit()">↻</button>
+      </div>
+      <div id="auditList">
+        <div class="loading"><span class="spinner"></span>Loading audit log...</div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  const API = 'http://localhost:8000/api/v1';
+
+  // ─── Tool icons ───────────────────────────────────────────
+  const TOOL_ICONS = {
+    github: '🐙', aws: '☁️', azure: '🔷', gcp: '🟡',
+    terraform: '🏗️', kubernetes: '⚙️', ansible: '🔧',
+    trivy: '🔍', checkov: '✅', cloudwatch: '📊',
+    prometheus: '🔥', grafana: '📈', openshift: '🔴',
+    docker: '🐳', helm: '⛵', argocd: '🚀',
+    jenkins: '🤖', sonarqube: '🎯', nexus: '📦',
+  };
+
+  // ─── Status ───────────────────────────────────────────────
+  async function loadStatus() {
+    try {
+      const res = await fetch(`${API}/platform/status`);
+      const data = await res.json();
+      document.getElementById('agentCount').textContent =
+        data.agents?.available_agents ?? '—';
+      document.getElementById('toolCount').textContent =
+        data.tools?.available_tools ?? '—';
+      document.getElementById('workflowCount').textContent =
+        data.workflows?.length ?? '—';
+      document.getElementById('headerStatus').textContent = 'Platform Running';
+      document.getElementById('statusDot').style.background = '#3fb950';
+    } catch {
+      document.getElementById('headerStatus').textContent = 'API Offline';
+      document.getElementById('statusDot').style.background = '#f85149';
+    }
+  }
+
+  // ─── Agents ───────────────────────────────────────────────
+  async function loadAgents() {
+    document.getElementById('agentList').innerHTML =
+      '<div class="loading"><span class="spinner"></span>Loading...</div>';
+    try {
+      const res = await fetch(`${API}/platform/agents`);
+      const data = await res.json();
+      const agents = data.agents ?? {};
+      const html = Object.entries(agents).map(([key, agent]) => `
+        <div class="agent-item">
+          <div>
+            <div class="agent-name">${agent.role}</div>
+            <div class="agent-role">${key}</div>
+          </div>
+          <div class="agent-tools">
+            ${(agent.tools || []).map(t =>
+              `<span class="tool-tag">${TOOL_ICONS[t] || '🔧'} ${t}</span>`
+            ).join('')}
+          </div>
+        </div>
+      `).join('');
+      document.getElementById('agentList').innerHTML = html;
+    } catch {
+      document.getElementById('agentList').innerHTML =
+        '<div class="error-msg">Could not load agents. Is the API running?</div>';
+    }
+  }
+
+  // ─── Tools ────────────────────────────────────────────────
+  async function loadTools() {
+    document.getElementById('toolsList').innerHTML =
+      '<div class="loading"><span class="spinner"></span>Loading...</div>';
+    try {
+      const res = await fetch(`${API}/platform/tools`);
+      const data = await res.json();
+      const tools = data.tools ?? [];
+      const html = `<div class="tools-grid">` +
+        tools.map(t => `
+          <div class="tool-item">
+            <div class="tool-icon">${TOOL_ICONS[t] || '🔧'}</div>
+            <div class="tool-name">${t}</div>
+          </div>
+        `).join('') +
+      `</div>`;
+      document.getElementById('toolsList').innerHTML = html;
+    } catch {
+      document.getElementById('toolsList').innerHTML =
+        '<div class="error-msg">Could not load tools.</div>';
+    }
+  }
+
+  // ─── Workflows ────────────────────────────────────────────
+  async function loadWorkflows() {
+    try {
+      const res = await fetch(`${API}/platform/workflows`);
+      const data = await res.json();
+      const workflows = data.workflows ?? [];
+      const html = workflows.map(wf => `
+        <span class="workflow-chip" onclick="setIntent('${wf}')">
+          ${wf.replace(/_/g, ' ')}
+        </span>
+      `).join('');
+      document.getElementById('workflowChips').innerHTML = html;
+    } catch {
+      document.getElementById('workflowChips').innerHTML = '';
+    }
+  }
+
+  function setIntent(wf) {
+    const examples = {
+      'create_project': 'Crea un proyecto nuevo llamado my-service',
+      'deploy_eks': 'deploy eks en eu-west-1',
+      'security_review': 'escanea seguridad del repositorio',
+      'infrastructure_review': 'revisa la infraestructura',
+    };
+    document.getElementById('intentInput').value =
+      examples[wf] || wf.replace(/_/g, ' ');
+  }
+
+  // ─── Plan ─────────────────────────────────────────────────
+  async function generatePlan() {
+    const intent = document.getElementById('intentInput').value.trim();
+    if (!intent) return;
+    const result = document.getElementById('planResult');
+    result.className = 'plan-result visible';
+    result.innerHTML = '<span class="spinner"></span> Generating plan...';
+
+    try {
+      const res = await fetch(`${API}/projects/plan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ intent, params: {} }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        result.innerHTML = `<span style="color:#f85149">✗ ${data.detail}</span>`;
+        return;
+      }
+
+      const tasks = data.execution_order ?? [];
+      const html = `
+        <div style="color:#8b949e; margin-bottom:8px;">
+          Plan: <span style="color:#58a6ff">${data.plan_id}</span>
+          &nbsp;·&nbsp; ${data.total_tasks} tasks
+          &nbsp;·&nbsp; Approval: ${data.requires_approval ? '⚠️ required' : '✓ not required'}
+        </div>
+        ${tasks.map(t => `
+          <div class="task-line">
+            <span class="task-number">${t.level}.</span>
+            <span class="task-type">${t.type}</span>
+            <span class="task-arrow">→</span>
+            <span class="task-agent">${t.assigned_to}</span>
+            ${t.parallel ? '<span class="task-parallel">parallel</span>' : ''}
+          </div>
+        `).join('')}
+      `;
+      result.innerHTML = html;
+    } catch {
+      result.innerHTML = '<span style="color:#f85149">✗ Could not reach API</span>';
+    }
+  }
+
+  async function executePlan() {
+    const intent = document.getElementById('intentInput').value.trim();
+    if (!intent) return;
+    const btn = document.getElementById('execBtn');
+    const result = document.getElementById('planResult');
+    result.className = 'plan-result visible';
+    result.innerHTML = '<span class="spinner"></span> Executing...';
+    btn.disabled = true;
+
+    try {
+      const res = await fetch(`${API}/projects/execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ intent, params: {}, actor: 'dashboard.user' }),
+      });
+      const data = await res.json();
+      const ok = data.status === 'completed';
+      result.innerHTML = `
+        <div style="color:${ok ? '#3fb950' : '#f85149'}; margin-bottom:8px;">
+          ${ok ? '✓ Plan completed successfully' : '✗ Plan ' + data.status}
+        </div>
+        <div style="color:#8b949e; font-size:12px;">
+          Plan ID: ${data.plan_id}<br>
+          Intent: ${data.intent}
+        </div>
+        ${ok && data.summary?.completed_tasks ? `
+          <div style="margin-top:8px;">
+            ${data.summary.completed_tasks.map(t =>
+              `<div class="task-line"><span style="color:#3fb950">✓</span> <span class="task-type">${t}</span></div>`
+            ).join('')}
+          </div>
+        ` : ''}
+      `;
+      loadAudit();
+    } catch {
+      result.innerHTML = '<span style="color:#f85149">✗ Could not reach API</span>';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ─── Cloud Review ─────────────────────────────────────────
+  async function reviewCloud(cloud) {
+    const el = document.getElementById('cloudResult');
+    el.innerHTML = '<div class="loading"><span class="spinner"></span>Reviewing ' + cloud.toUpperCase() + '...</div>';
+
+    try {
+      const res = await fetch(`${API}/cloud/review/${cloud}`);
+      const data = await res.json();
+
+      if (cloud === 'multicloud') {
+        const summary = data.summary ?? {};
+        const html = `<div class="cloud-grid">` +
+          Object.entries(summary).map(([provider, metrics]) => `
+            <div class="cloud-card">
+              <div class="cloud-name">${provider.toUpperCase()}</div>
+              ${Object.entries(metrics).map(([k, v]) => `
+                <div class="cloud-metric">
+                  <span class="cloud-metric-label">${k.replace('_count','')}</span>
+                  <span class="cloud-metric-value" style="color:${v > 0 ? '#3fb950' : '#8b949e'}">${v}</span>
+                </div>
+              `).join('')}
+            </div>
+          `).join('') +
+        `</div>`;
+        el.innerHTML = html;
+      } else {
+        const summary = data.summary ?? {};
+        el.innerHTML = `
+          <div class="cloud-grid">
+            <div class="cloud-card" style="grid-column: 1 / -1;">
+              <div class="cloud-name">${cloud.toUpperCase()} Summary</div>
+              <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; margin-top:8px;">
+                ${Object.entries(summary).map(([k, v]) => `
+                  <div style="text-align:center;">
+                    <div style="font-size:24px; font-weight:700; color:${v > 0 ? '#3fb950' : '#8b949e'}">${v}</div>
+                    <div style="font-size:11px; color:#8b949e;">${k.replace('_count','')}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    } catch {
+      el.innerHTML = '<div class="error-msg">Could not load cloud data.</div>';
+    }
+  }
+
+  // ─── Audit Log ────────────────────────────────────────────
+  async function loadAudit() {
+    document.getElementById('auditList').innerHTML =
+      '<div class="loading"><span class="spinner"></span>Loading...</div>';
+    try {
+      const res = await fetch(`${API}/platform/audit`);
+      const data = await res.json();
+      const log = data.audit_log ?? [];
+
+      if (log.length === 0) {
+        document.getElementById('auditList').innerHTML =
+          '<div style="text-align:center; color:#8b949e; padding:20px; font-size:13px;">No audit entries yet</div>';
+        return;
+      }
+
+      const html = log.slice(-10).reverse().map(entry => {
+        const approved = entry.decision === 'approved';
+        return `
+          <div class="audit-item">
+            <div class="audit-icon ${approved ? 'audit-approved' : 'audit-denied'}">
+              ${approved ? '✓' : '✗'}
+            </div>
+            <div class="audit-content">
+              <div class="audit-task">${entry.task_type || entry.task || 'Task'}</div>
+              <div class="audit-meta">
+                ${entry.actor || 'system'} · ${entry.environment || 'development'}
+              </div>
+            </div>
+            <span class="audit-decision ${approved ? 'approved' : 'denied'}">
+              ${entry.decision || 'unknown'}
+            </span>
+          </div>
+        `;
+      }).join('');
+      document.getElementById('auditList').innerHTML = html;
+    } catch {
+      document.getElementById('auditList').innerHTML =
+        '<div class="error-msg">Could not load audit log.</div>';
+    }
+  }
+
+  // ─── Init ─────────────────────────────────────────────────
+  async function init() {
+    await loadStatus();
+    await Promise.all([loadAgents(), loadTools(), loadWorkflows(), loadAudit()]);
+  }
+
+  init();
+  setInterval(loadStatus, 30000);
+</script>
+</body>
+</html>
