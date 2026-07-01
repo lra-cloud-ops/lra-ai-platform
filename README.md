@@ -49,6 +49,36 @@ cp .env.example .env
 # Edit .env and add your credentials
 ```
 
+### Start the Platform
+
+**Option A — Terminal (development, live logs)**
+```bash
+# Terminal 1
+python api/app.py
+
+# Then open dashboard in browser
+start dashboard/index.html   # Windows
+# or open dashboard/index.html manually
+```
+
+**Option B — Docker (production/demo, runs in background)**
+```bash
+docker-compose up -d
+# API:       http://localhost:8000
+# Dashboard: http://localhost:3001
+```
+
+**Stop the platform**
+```bash
+# Terminal
+Ctrl+C
+
+# Docker
+docker-compose down
+```
+
+> Note: do not run both options at the same time — both use port 8000.
+
 ### CLI
 
 ```bash
@@ -61,26 +91,78 @@ python cli/lra.py agents                                 # List agents
 python cli/lra.py workflows                              # List workflows
 ```
 
-### API REST
+### Optional — Set up alias
 
 ```bash
-python api/app.py
-# Docs: http://localhost:8000/docs
+# Add to ~/.bashrc
+alias lra="python /c/Users/lique/workspace/lra-ai-platform/cli/lra.py"
+source ~/.bashrc
+
+# Then use directly
+lra status
+lra review aws
+lra init "Crea un proyecto llamado X"
 ```
 
-### Dashboard
+---
 
-```bash
-# Start API first, then open:
-start dashboard/index.html
+## Analyze Projects
+
+### Local project → save docs locally
+```python
+from agents.documentation_agent import DocumentationAgent
+from tools.local.local_tool import LocalTool
+from core.interfaces.task import Task
+
+agent = DocumentationAgent(name='docs', role='writer', description='')
+agent.register_tool(LocalTool())
+
+task = Task(
+    type='analyze_local_project',
+    params={
+        'path': 'C:/Users/lique/workspace/mi-proyecto',
+        'save': True,
+        'save_to': 'local',
+    },
+    assigned_to='documentation'
+)
+result = agent.execute_task(task)
 ```
 
-### Docker
+### Local project → save docs to GitHub
+```python
+task = Task(
+    type='analyze_local_project',
+    params={
+        'path': 'C:/Users/lique/workspace/mi-proyecto',
+        'save': True,
+        'save_to': 'github',
+        'repo': 'mi-repo',
+        'org': 'lra-cloud-ops',
+    },
+    assigned_to='documentation'
+)
+```
 
-```bash
-docker-compose up
-# API:       http://localhost:8000
-# Dashboard: http://localhost:3001
+### GitHub repo → analyze and save docs
+```python
+from agents.documentation_agent import DocumentationAgent
+from tools.vcs.github.github_tool import GitHubTool
+from core.interfaces.task import Task
+
+agent = DocumentationAgent(name='docs', role='writer', description='')
+agent.register_tool(GitHubTool())
+
+task = Task(
+    type='analyze_repository',
+    params={
+        'repo': 'aws-terraform-devops-lab',
+        'org': 'lra-cloud-ops',
+        'save': True,
+    },
+    assigned_to='documentation'
+)
+result = agent.execute_task(task)
 ```
 
 ---
@@ -124,12 +206,12 @@ Key design decisions documented in [`docs/adr/`](docs/adr/).
 | **Security Engineer** ✅ | Vulnerability and IaC scanning | trivy, checkov, github |
 | **SRE** ✅ | Observability, alerts, reliability | cloudwatch, prometheus, grafana |
 | **OpenShift Agent** ✅ | OC CLI, Operators, Pipelines | openshift, kubernetes, github |
-| **Documentation Agent** ✅ | README, ADR, Runbooks, Architecture | github |
+| **Documentation Agent** ✅ | README, ADR, Runbooks, local + GitHub | github, local |
 | **Reviewer Agent** ✅ | PR review, code quality, security | github, trivy, checkov |
 
 ---
 
-## Tools (13 live integrations)
+## Tools (14 live integrations)
 
 | Tool | Status | Integration |
 |---|---|---|
@@ -146,6 +228,7 @@ Key design decisions documented in [`docs/adr/`](docs/adr/).
 | Prometheus | ✅ Live | HTTP API → query, alerts, targets |
 | Grafana | ✅ Live | HTTP API → dashboards, health, alerts |
 | OpenShift | ✅ Live | oc CLI → projects, deployments, operators |
+| Local | ✅ Live | filesystem → analyze, detect stack, save files |
 
 ---
 
@@ -255,7 +338,7 @@ lra-ai-platform/
 ├── cli/lra.py                 # CLI (Click)
 ├── config/
 │   ├── agents.yaml            # 8 agents configured
-│   ├── tools.yaml             # 24 tools catalogued
+│   ├── tools.yaml             # 14 live tools + catalogued
 │   ├── config.yaml            # Platform configuration
 │   └── workflows/             # 8 workflow templates
 ├── core/
@@ -269,10 +352,11 @@ lra-ai-platform/
 ├── dashboard/index.html       # Web dashboard
 ├── docs/                      # 11 design docs + 4 ADRs
 ├── tests/                     # 33 tests
-├── tools/                     # 13 live tool integrations
+├── tools/                     # 14 live tool integrations
 │   ├── cloud/                 # AWS, Azure, GCP + BaseCloudTool
 │   ├── containers/            # Kubernetes, OpenShift
 │   ├── iac/                   # Terraform, Ansible
+│   ├── local/                 # Local filesystem analysis
 │   ├── observability/         # CloudWatch, Prometheus, Grafana
 │   ├── security/              # Trivy, Checkov
 │   └── vcs/                   # GitHub
