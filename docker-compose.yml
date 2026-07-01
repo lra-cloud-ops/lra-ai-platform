@@ -1,0 +1,30 @@
+# docker-compose.yml — LRA AI Platform
+
+services:
+  api:
+    build: .
+    container_name: lra-ai-platform
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./memory:/app/memory
+      - ./config:/app/config
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  dashboard:
+    image: nginx:alpine
+    container_name: lra-dashboard
+    ports:
+      - "3001:80"
+    volumes:
+      - ./dashboard:/usr/share/nginx/html:ro
+    depends_on:
+      - api
+    restart: unless-stopped
