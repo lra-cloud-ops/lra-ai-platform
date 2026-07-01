@@ -2,6 +2,7 @@
 # Implementa ADR-004: mapeo por keywords a Workflows con nombre.
 # Traduce un Intent en texto libre a un ExecutionPlan concreto.
 
+import re
 import yaml
 from pathlib import Path
 from core.interfaces.task import Task
@@ -44,19 +45,42 @@ class TaskPlanner:
                     return wf
         return None
 
+    def _extract_name(self, intent: str) -> str:
+        """
+        Extrae el nombre del proyecto del intent.
+
+        Ejemplos:
+            "Crea un proyecto llamado client-api" -> "client-api"
+            "Create a new project named my-service" -> "my-service"
+        """
+        patterns = [
+            r"llamado\s+([\w-]+)",
+            r"llamada\s+([\w-]+)",
+            r"named\s+([\w-]+)",
+            r"called\s+([\w-]+)",
+            r"name[d]?\s+([\w-]+)",
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, intent, re.IGNORECASE)
+            if match:
+                return match.group(1)
+        return None
+
     def plan(self, intent: str, params: dict = None) -> tuple:
         """
         Genera un ExecutionPlan a partir de un Intent.
-
-        Retorna (ExecutionPlan, tasks_by_id) — tasks_by_id es necesario
-        para que WorkflowEngine.execute() pueda resolver cada Task del
-        task_graph (mismo patron usado en las pruebas de WorkflowEngine).
-
-        Si no hay Workflow que matchee, retorna un plan INVALID.
+        Extrae automaticamente el nombre del proyecto del intent si no
+        viene en params.
         """
         params = params or {}
-        workflow = self._match_workflow(intent)
 
+        # Extraer nombre del proyecto del intent si no viene en params
+        if "name" not in params:
+            name = self._extract_name(intent)
+            if name:
+                params["name"] = name
+
+        workflow = self._match_workflow(intent)
         if workflow is None:
             plan = ExecutionPlan(intent=intent, tasks=[], task_graph={})
             plan.transition(PlanStatus.INVALID, reason="no_matching_workflow")
@@ -65,19 +89,16 @@ class TaskPlanner:
         tasks_by_id = {}
         type_to_id = {}
 
-        # Primera pasada: instanciar cada Task con un id real
         for task_def in workflow["tasks"]:
             task = Task(
                 type=task_def["type"],
-                params=params,
+                params=params.copy(),
                 assigned_to=task_def["assigned_to"],
                 capability=task_def["capability"],
             )
             tasks_by_id[task.id] = task
             type_to_id[task_def["type"]] = task.id
 
-        # Segunda pasada: construir el task_graph traduciendo depends_on
-        # (declarado por 'type' en el YAML) a ids reales
         task_graph = {}
         for task_def in workflow["tasks"]:
             task_id = type_to_id[task_def["type"]]
@@ -89,7 +110,6 @@ class TaskPlanner:
             tasks=list(tasks_by_id.keys()),
             task_graph=task_graph,
         )
-
         return plan, tasks_by_id
 
     def list_workflows(self) -> list:

@@ -66,16 +66,12 @@ tools:
     name: "VMware Tool"
     category: "cloud"
     path: "tools/cloud/vmware"
-    active: true
+    active: false
     actions:
       - create_vm
-      - clone_vm
-      - snapshot_create
-      - snapshot_restore
       - list_vms
       - start_vm
       - stop_vm
-      - get_resources
 
   # Containers
   docker:
@@ -114,7 +110,6 @@ tools:
     actions:
       - create_project
       - deploy_app
-      - create_pipeline
       - install_operator
       - get_routes
       - apply_manifest
@@ -135,38 +130,28 @@ tools:
     name: "Podman Tool"
     category: "containers"
     path: "tools/containers/podman"
-    active: true
+    active: false
     actions:
       - build_image
-      - push_image
-      - pull_image
       - run_container
-      - list_containers
-      - stop_container
 
   buildah:
     name: "Buildah Tool"
     category: "containers"
     path: "tools/containers/buildah"
-    active: true
+    active: false
     actions:
       - build_image
       - push_image
-      - from_image
-      - run_command
-      - commit_image
 
   skopeo:
     name: "Skopeo Tool"
     category: "containers"
     path: "tools/containers/skopeo"
-    active: true
+    active: false
     actions:
       - copy_image
       - inspect_image
-      - delete_image
-      - list_tags
-      - sync_registry
 
   # IaC
   terraform:
@@ -192,7 +177,6 @@ tools:
       - run_adhoc
       - list_inventory
       - check_syntax
-      - install_role
       - encrypt_vault
       - decrypt_vault
 
@@ -203,24 +187,17 @@ tools:
     active: false
     actions:
       - launch_job_template
-      - list_inventories
       - list_job_templates
-      - get_job_status
 
   vagrant:
     name: "Vagrant Tool"
     category: "iac"
     path: "tools/iac/vagrant"
-    active: true
+    active: false
     actions:
       - up
       - halt
       - destroy
-      - ssh
-      - provision
-      - status
-      - snapshot_save
-      - snapshot_restore
 
   # CI/CD
   jenkins:
@@ -232,9 +209,7 @@ tools:
       - trigger_job
       - get_job_status
       - get_build_log
-      - create_job
       - list_jobs
-      - cancel_build
 
   argocd:
     name: "ArgoCD Tool"
@@ -245,7 +220,6 @@ tools:
       - sync_app
       - get_app_status
       - create_app
-      - delete_app
       - list_apps
       - rollback_app
 
@@ -258,7 +232,6 @@ tools:
       - scan_project
       - get_quality_gate
       - list_issues
-      - get_metrics
 
   nexus:
     name: "Nexus Tool"
@@ -267,3 +240,58 @@ tools:
     active: true
     actions:
       - upload_artifact
+
+  # Security
+  trivy:
+    name: "Trivy Tool"
+    category: "security"
+    path: "tools/security/trivy"
+    active: true
+    actions:
+      - scan_image
+      - scan_filesystem
+      - scan_kubernetes
+      - scan_terraform
+
+  checkov:
+    name: "Checkov Tool"
+    category: "security"
+    path: "tools/security/checkov"
+    active: true
+    actions:
+      - scan_terraform
+      - scan_kubernetes
+      - scan_dockerfile
+      - scan_github_actions
+
+  # Observability
+  cloudwatch:
+    name: "CloudWatch Tool"
+    category: "observability"
+    path: "tools/observability/cloudwatch"
+    active: true
+    actions:
+      - list_alarms
+      - get_metric_statistics
+      - list_log_groups
+      - get_logs
+
+  prometheus:
+    name: "Prometheus Tool"
+    category: "observability"
+    path: "tools/observability/prometheus"
+    active: true
+    actions:
+      - query
+      - get_alerts
+      - get_targets
+
+  grafana:
+    name: "Grafana Tool"
+    category: "observability"
+    path: "tools/observability/grafana"
+    active: true
+    actions:
+      - list_dashboards
+      - get_health
+      - get_alerts

@@ -1,71 +1,62 @@
 # config/agents.yaml
 # Registro de todos los agentes de LRA AI Platform.
-# Define qué agentes están activos y qué tools pueden usar.
+# Solo incluye tools que tienen implementación real.
 
 agents:
-
   founder:
     name: "Founder Agent"
     role: "Project Initializer"
-    description: "Inicializa proyectos nuevos, descubre requisitos y genera la estructura base."
+    description: "Inicializa proyectos nuevos y genera la estructura base."
     active: true
     tools:
       - github
-      - linux
 
   cloud_architect:
     name: "Cloud Architect"
     role: "Architecture Designer"
-    description: "Diseña arquitecturas cloud multi-proveedor siguiendo Well-Architected Framework."
+    description: "Diseña y revisa arquitecturas cloud multi-proveedor."
     active: true
     tools:
       - aws
       - azure
       - gcp
-      - terraform
       - github
 
   devops:
     name: "DevOps Engineer"
     role: "Automation Specialist"
-    description: "Gestiona CI/CD, contenedores, Kubernetes y automatización de infraestructura."
+    description: "Gestiona infraestructura, Kubernetes y automatización."
     active: true
     tools:
-      - github
-      - docker
-      - kubernetes
-      - helm
       - terraform
-      - argocd
+      - kubernetes
+      - ansible
+      - github
 
   security:
     name: "Security Engineer"
     role: "Security Specialist"
-    description: "Analiza vulnerabilidades, revisa configuraciones y gestiona secretos."
+    description: "Analiza vulnerabilidades y revisa configuraciones IaC."
     active: true
     tools:
       - trivy
       - checkov
-      - vault
-      - snyk
       - github
 
   sre:
     name: "SRE"
     role: "Reliability Engineer"
-    description: "Gestiona observabilidad, alertas, SLOs y respuesta a incidentes."
+    description: "Gestiona observabilidad, alertas y fiabilidad."
     active: true
     tools:
+      - cloudwatch
       - prometheus
       - grafana
-      - loki
-      - tempo
-      - aws
 
   openshift:
     name: "OpenShift Agent"
     role: "OpenShift Specialist"
-    description: "Gestiona clusters OpenShift, Operators, Pipelines y Service Mesh."
+    description: "Gestiona clusters OpenShift, Operators y Pipelines."
     active: true
     tools:
       - openshift
@@ -79,12 +70,11 @@ agents:
     active: true
     tools:
       - github
-      - linux
 
   reviewer:
     name: "Reviewer"
     role: "Code Reviewer"
-    description: "Revisa Pull Requests analizando calidad, seguridad y rendimiento."
+    description: "Revisa Pull Requests analizando calidad y seguridad."
     active: true
     tools:
       - github

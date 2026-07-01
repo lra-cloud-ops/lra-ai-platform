@@ -17,16 +17,14 @@ class AgentManager:
         2. Asignar las tools correctas a cada agente
         3. Proporcionar agentes al Supervisor cuando los solicita
         4. Reportar el estado de todos los agentes al dashboard
-
-    Relación con otros componentes:
-        AgentManager usa ConfigManager → sabe qué agentes existen
-        AgentManager usa ToolManager   → asigna tools a cada agente
-
-    Uso:
-        agent_manager = AgentManager(config, tool_manager)
-        devops = agent_manager.get_agent("devops")
-        devops.run("deploy application", {"repo": "lracloudops"})
     """
+
+    # Overrides para nombres que no siguen PascalCase estándar
+    _CLASS_NAME_OVERRIDES = {
+        "devops":    "DevOpsAgent",
+        "sre":       "SREAgent",
+        "openshift": "OpenShiftAgent",
+    }
 
     def __init__(self, config: ConfigManager, tool_manager: ToolManager):
         self.config = config
@@ -36,23 +34,9 @@ class AgentManager:
         self._load_catalog()
 
     def _load_catalog(self):
-        """
-        Carga el catálogo de agentes desde agents.yaml.
-        No instancia los agentes — solo registra su configuración.
-        """
         self._catalog = self.config.get_active_agents()
 
     def get_agent(self, name: str) -> Agent:
-        """
-        Retorna un agente por nombre.
-        Si ya fue instanciado antes lo reutiliza.
-        Si no, lo carga dinámicamente y le asigna sus tools.
-
-        Ejemplo:
-            devops   = agent_manager.get_agent("devops")
-            security = agent_manager.get_agent("security")
-            founder  = agent_manager.get_agent("founder")
-        """
         if name in self._registry:
             return self._registry[name]
 
@@ -68,16 +52,7 @@ class AgentManager:
         return agent
 
     def _load_agent(self, name: str) -> Agent:
-        """
-        Carga dinámicamente la implementación de un agente.
-
-        Ejemplo:
-            agents/devops_agent.py   → DevOpsAgent
-            agents/security_agent.py → SecurityAgent
-            agents/founder_agent.py  → FounderAgent
-        """
         class_name = self._to_class_name(name)
-
         try:
             module = importlib.import_module(f"agents.{name}_agent")
             agent_class = getattr(module, class_name)
@@ -95,20 +70,6 @@ class AgentManager:
             )
 
     def _assign_tools(self, agent: Agent, name: str) -> None:
-        """
-        Asigna las tools configuradas en agents.yaml al agente.
-        Solo asigna tools que estén activas en el ToolManager.
-
-        Ejemplo agents.yaml:
-            devops:
-              tools:
-                - github
-                - kubernetes
-                - helm
-
-        El agente recibirá GitHubTool, KubernetesTool y HelmTool.
-        Tools inactivas o no disponibles se omiten con un warning.
-        """
         agent_config = self._catalog[name]
         required_tools = agent_config.get("tools", [])
 
@@ -123,40 +84,23 @@ class AgentManager:
                 )
 
     def _to_class_name(self, name: str) -> str:
-        """
-        Convierte el nombre de un agente a nombre de clase Python.
-
-        Ejemplos:
-            devops          → DevOpsAgent
-            cloud_architect → CloudArchitectAgent
-            founder         → FounderAgent
-        """
+        if name in self._CLASS_NAME_OVERRIDES:
+            return self._CLASS_NAME_OVERRIDES[name]
         return "".join(word.capitalize() for word in name.split("_")) + "Agent"
 
     def register_agent(self, name: str, agent: Agent) -> None:
-        """
-        Registra manualmente un agente en el manager.
-        Útil para testing o para agentes creados dinámicamente.
-        """
         self._registry[name] = agent
 
     def list_available(self) -> list[str]:
-        """Retorna los nombres de todos los agentes activos."""
         return list(self._catalog.keys())
 
     def list_loaded(self) -> list[str]:
-        """Retorna los agentes que ya han sido instanciados."""
         return list(self._registry.keys())
 
     def is_available(self, name: str) -> bool:
-        """Verifica si un agente está disponible sin instanciarlo."""
         return name in self._catalog
 
     def summary(self) -> dict:
-        """
-        Retorna un resumen del estado del AgentManager.
-        Útil para el dashboard y el Supervisor.
-        """
         return {
             "available_agents": len(self._catalog),
             "loaded_agents": len(self._registry),
