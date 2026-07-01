@@ -1,0 +1,25 @@
+# config/workflows/full_project_setup.yaml
+name: full_project_setup
+description: "Setup completo de proyecto: repo + docs + security scan + SRE report"
+keywords:
+  - "setup completo"
+  - "full setup"
+  - "proyecto completo"
+  - "onboarding"
+  - "setup proyecto"
+tasks:
+  - type: create_repository
+    assigned_to: founder
+    capability: create_repository
+  - type: generate_documentation
+    assigned_to: founder
+    capability: generate_documentation
+    depends_on: [create_repository]
+  - type: scan_repository
+    assigned_to: security
+    capability: scan_repository
+    depends_on: [create_repository]
+  - type: check_cloudwatch_alarms
+    assigned_to: sre
+    capability: check_cloudwatch_alarms
+    depends_on: [create_repository]

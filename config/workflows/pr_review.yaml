@@ -1,0 +1,22 @@
+# config/workflows/pr_review.yaml
+name: pr_review
+description: "Revisa un Pull Request: calidad + seguridad + recomendación"
+keywords:
+  - "review pr"
+  - "revisa el pr"
+  - "code review"
+  - "revisar pull request"
+  - "review pull request"
+  - "revisa el codigo"
+tasks:
+  - type: check_pr_security
+    assigned_to: reviewer
+    capability: check_pr_security
+  - type: check_pr_quality
+    assigned_to: reviewer
+    capability: check_pr_quality
+    depends_on: [check_pr_security]
+  - type: generate_review_report
+    assigned_to: reviewer
+    capability: generate_review_report
+    depends_on: [check_pr_quality]

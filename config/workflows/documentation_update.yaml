@@ -1,0 +1,22 @@
+# config/workflows/documentation_update.yaml
+name: documentation_update
+description: "Analiza un repositorio existente y genera documentación completa"
+keywords:
+  - "actualiza documentacion"
+  - "genera documentacion"
+  - "update documentation"
+  - "generate docs"
+  - "documenta el proyecto"
+  - "analiza el repositorio"
+tasks:
+  - type: analyze_repository
+    assigned_to: documentation
+    capability: analyze_repository
+  - type: generate_adr
+    assigned_to: documentation
+    capability: generate_adr
+    depends_on: [analyze_repository]
+  - type: generate_changelog
+    assigned_to: documentation
+    capability: generate_changelog
+    depends_on: [analyze_repository]

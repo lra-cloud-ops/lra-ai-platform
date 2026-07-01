@@ -1,0 +1,25 @@
+# config/workflows/openshift_deploy.yaml
+name: openshift_deploy
+description: "Despliega una aplicación en OpenShift: proyecto + deploy + route"
+keywords:
+  - "deploy openshift"
+  - "despliega openshift"
+  - "openshift deploy"
+  - "deploy en openshift"
+  - "nuevo proyecto openshift"
+tasks:
+  - type: get_projects
+    assigned_to: openshift
+    capability: get_projects
+  - type: create_project
+    assigned_to: openshift
+    capability: create_project
+    depends_on: [get_projects]
+  - type: deploy_app
+    assigned_to: openshift
+    capability: deploy_app
+    depends_on: [create_project]
+  - type: expose_service
+    assigned_to: openshift
+    capability: expose_service
+    depends_on: [deploy_app]
