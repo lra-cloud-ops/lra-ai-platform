@@ -9,7 +9,9 @@ import sys
 import os
 
 # Añadir el directorio raíz al path para imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_PLATFORM_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _PLATFORM_DIR)
+os.chdir(_PLATFORM_DIR)
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -93,7 +95,8 @@ def status():
 @click.option("--actor", "-a", default="cli.user", help="Usuario que ejecuta")
 @click.option("--env", "-e", default="development", help="Entorno (development/production)")
 @click.option("--dry-run", is_flag=True, help="Genera el plan sin ejecutar")
-def init(intent, name, org, actor, env, dry_run):
+@click.option("--path", "-p", default=None, help="Path del proyecto local")
+def init(intent, name, org, actor, env, dry_run, path):
     """
     Inicializa un proyecto nuevo a partir de un intent.
 
@@ -119,6 +122,8 @@ def init(intent, name, org, actor, env, dry_run):
         params = {"org": org}
         if name:
             params["name"] = name
+        if path:
+            params["path"] = path
 
         plan, tasks = supervisor.plan(intent, params)
 
@@ -451,6 +456,238 @@ def memory(project):
 
     click.echo()
 
+@cli.command()
+@click.argument("path", default=".")
+@click.option("--save", "-s", is_flag=True, help="Guarda docs en el proyecto local")
+@click.option("--github", "-g", default=None, help="Repo GitHub: org/repo")
+@click.option("--org", "-o", default="lra-cloud-ops", help="Organizacion GitHub")
+def scan(path, save, github, org):
+    """
+    Escanea un proyecto local en profundidad.
 
+    Ejemplos:
+
+    \b
+      lra scan .
+      lra scan C:/Users/lique/workspace/tbf-cloud-infra
+      lra scan C:/Users/lique/workspace/mi-proyecto --save
+    """
+    import os
+    import tempfile
+    import shutil
+
+    # Si es un repo GitHub, clonarlo temporalmente
+    github_mode = github is not None
+    temp_dir = None
+
+    if github_mode:
+        repo_name = github if "/" in github else f"{org}/{github}"
+        click.echo()
+        click.secho("═" * 55, fg="blue")
+        click.secho("  LRA AI Platform — Deep Project Scan", fg="blue", bold=True)
+        click.secho("═" * 55, fg="blue")
+        click.secho(f"  GitHub repo: {repo_name}", fg="white")
+        click.echo()
+        click.secho("  Cloning repository...", fg="cyan")
+        temp_dir = tempfile.mkdtemp(prefix="lra_scan_")
+        import subprocess
+        result = subprocess.run(
+            ["git", "clone", f"https://github.com/{repo_name}.git", temp_dir],
+            capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            click.secho(f"  Clone failed: {result.stderr[:100]}", fg="red")
+            return
+        project_path = temp_dir
+        click.secho(f"  Cloned to: {temp_dir}", fg="green")
+        click.echo()
+    else:
+        project_path = os.path.abspath(path)
+        click.echo()
+        click.secho("═" * 55, fg="blue")
+        click.secho("  LRA AI Platform — Deep Project Scan", fg="blue", bold=True)
+        click.secho("═" * 55, fg="blue")
+        click.secho(f"  Project: {project_path}", fg="white")
+        click.echo()
+
+    try:
+        from tools.local.local_tool import LocalTool
+        from tools.security.trivy.trivy_tool import TrivyTool
+        from tools.security.checkov.checkov_tool import CheckovTool
+        from tools.vcs.github.github_tool import GitHubTool
+        from agents.security_agent import SecurityAgent
+        from agents.documentation_agent import DocumentationAgent
+        from core.interfaces.task import Task
+
+        local = LocalTool()
+
+        # ── 1. PROJECT ANALYSIS ──────────────────────────────────
+        click.secho("  [1/3] Analyzing project structure...", fg="cyan")
+        analysis = local.execute("analyze_project", {"path": project_path})
+
+        if "error" in analysis:
+            click.secho(f"  ✗ {analysis['error']}", fg="red")
+            return
+
+        click.echo()
+        click.secho("  PROJECT INFO", fg="white", bold=True)
+        click.secho(f"  Name:        {github if github_mode else analysis['name']}", fg="white")
+        click.secho(f"  Total files: {analysis['info']['total_files']}", fg="white")
+        click.secho(f"  Has README:  {'Yes' if analysis['has_readme'] else 'No'}", fg="green" if analysis['has_readme'] else "yellow")
+
+        click.echo()
+        click.secho("  STACK DETECTED", fg="white", bold=True)
+        for tech in analysis['stack']['technologies']:
+            click.secho(f"    ✓ {tech}", fg="green")
+
+        click.echo()
+        click.secho("  STRUCTURE (top level)", fg="white", bold=True)
+        for line in analysis['structure']['structure'][:15]:
+            click.secho(f"    {line}", fg="white")
+
+        click.echo()
+        click.secho("─" * 55, fg="blue")
+
+        # ── 2. SECURITY SCAN ─────────────────────────────────────
+        click.echo()
+        click.secho("  [2/3] Running security scan...", fg="cyan")
+
+        sec_agent = SecurityAgent(
+            name="Security", role="Security Specialist", description=""
+        )
+        sec_agent.register_tool(TrivyTool())
+        sec_agent.register_tool(CheckovTool())
+
+        task = Task(
+            type="scan_repository",
+            params={"path": project_path},
+            assigned_to="security"
+        )
+        sec_result = sec_agent.execute_task(task)
+        summary = sec_result.get("summary", {})
+        results = sec_result.get("results", {})
+
+        click.echo()
+        click.secho("  VULNERABILITIES (Trivy)", fg="white", bold=True)
+        critical = summary.get("critical", 0)
+        high     = summary.get("high", 0)
+        total    = summary.get("total_vulnerabilities", 0)
+
+        crit_color = "red" if critical > 0 else "green"
+        high_color = "yellow" if high > 0 else "green"
+
+        click.secho(f"    Critical: {critical}", fg=crit_color, bold=critical > 0)
+        click.secho(f"    High:     {high}", fg=high_color, bold=high > 0)
+        click.secho(f"    Total:    {total}", fg="white")
+
+        # Mostrar vulnerabilidades críticas
+        fs_result = results.get("filesystem", {})
+        vulns = fs_result.get("vulnerabilities", [])
+        crit_vulns = [v for v in vulns if v.get("severity") == "CRITICAL"]
+        if crit_vulns:
+            click.echo()
+            click.secho("  CRITICAL VULNERABILITIES:", fg="red", bold=True)
+            for v in crit_vulns[:5]:
+                click.secho(f"    ✗ [{v.get('id')}] {v.get('package')} {v.get('version')}", fg="red")
+                if v.get("fixed_version"):
+                    click.secho(f"      Fix: upgrade to {v.get('fixed_version')}", fg="yellow")
+
+        click.echo()
+        click.secho("  MISCONFIGURATIONS (Checkov)", fg="white", bold=True)
+        tf_failed  = results.get("terraform", {}).get("failed", 0)
+        tf_passed  = results.get("terraform", {}).get("passed", 0)
+        df_failed  = results.get("dockerfile", {}).get("failed", 0)
+        df_passed  = results.get("dockerfile", {}).get("passed", 0)
+        k8s_failed = results.get("kubernetes", {}).get("failed", 0)
+        k8s_passed = results.get("kubernetes", {}).get("passed", 0)
+
+        total_misconfigs = summary.get("total_misconfigurations", 0)
+
+        click.secho(f"    Terraform:  {tf_passed} passed, {tf_failed} failed", fg="yellow" if tf_failed > 0 else "green")
+        click.secho(f"    Dockerfile: {df_passed} passed, {df_failed} failed", fg="yellow" if df_failed > 0 else "green")
+        click.secho(f"    Kubernetes: {k8s_passed} passed, {k8s_failed} failed", fg="yellow" if k8s_failed > 0 else "green")
+
+        # Mostrar failed checks más importantes
+        for scan_type in ["terraform", "dockerfile", "kubernetes"]:
+            failed_checks = results.get(scan_type, {}).get("failed_checks", [])[:3]
+            if failed_checks:
+                click.echo()
+                click.secho(f"  TOP {scan_type.upper()} ISSUES:", fg="yellow", bold=True)
+                for check in failed_checks:
+                    click.secho(f"    ✗ [{check.get('check_id')}] {check.get('check_name', '')[:60]}", fg="yellow")
+                    if check.get("file"):
+                        click.secho(f"      File: {check.get('file')}", fg="white")
+
+        click.echo()
+        click.secho("─" * 55, fg="blue")
+
+        # ── 3. OVERALL STATUS ────────────────────────────────────
+        click.echo()
+        click.secho("  [3/3] Generating summary...", fg="cyan")
+        click.echo()
+
+        status = summary.get("status", "UNKNOWN")
+        if status == "PASS":
+            click.secho("  ✓ SECURITY STATUS: PASS", fg="green", bold=True)
+        else:
+            click.secho("  ✗ SECURITY STATUS: FAIL", fg="red", bold=True)
+
+        click.echo()
+        click.secho("  SUMMARY", fg="white", bold=True)
+        click.secho(f"    Stack:           {', '.join(analysis['stack']['technologies'][:4])}", fg="white")
+        click.secho(f"    Total files:     {analysis['info']['total_files']}", fg="white")
+        click.secho(f"    Critical vulns:  {critical}", fg="red" if critical > 0 else "green")
+        click.secho(f"    High vulns:      {high}", fg="yellow" if high > 0 else "green")
+        click.secho(f"    Misconfigs:      {total_misconfigs}", fg="yellow" if total_misconfigs > 0 else "green")
+
+        if critical > 0 or high > 5:
+            click.echo()
+            click.secho("  RECOMMENDED ACTIONS:", fg="yellow", bold=True)
+            if critical > 0:
+                click.secho("    1. Fix CRITICAL vulnerabilities immediately", fg="red")
+                click.secho("       → Update affected packages to fixed versions", fg="white")
+            if tf_failed > 0:
+                click.secho(f"    2. Fix {tf_failed} Terraform misconfigurations", fg="yellow")
+                click.secho("       → Run: checkov -d . --framework terraform", fg="white")
+            if df_failed > 0:
+                click.secho(f"    3. Fix {df_failed} Dockerfile issues", fg="yellow")
+                click.secho("       → Run: checkov -d . --framework dockerfile", fg="white")
+
+        # ── SAVE DOCS ────────────────────────────────────────────
+        if save:
+            click.echo()
+            click.secho("  Generating documentation...", fg="cyan")
+            doc_agent = DocumentationAgent(
+                name="Docs", role="Technical Writer", description=""
+            )
+            doc_agent.register_tool(local)
+            doc_agent.register_tool(GitHubTool())
+
+            task2 = Task(
+                type="analyze_local_project",
+                params={"path": project_path, "save": True, "save_to": "local"},
+                assigned_to="documentation"
+            )
+            doc_result = doc_agent.execute_task(task2)
+            click.echo()
+            click.secho("  DOCS GENERATED:", fg="cyan", bold=True)
+            for doc, saved in doc_result.get("docs_generated", {}).items():
+                icon = "✓" if saved else "✗"
+                color = "green" if saved else "red"
+                click.secho(f"    {icon} {doc}", fg=color)
+
+        click.echo()
+        click.secho("═" * 55, fg="blue")
+
+    except Exception as e:
+        click.secho(f"  ✗ Error: {e}", fg="red")
+        import traceback
+        traceback.print_exc()
+    finally:
+        if temp_dir and os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    click.echo()
+    
 if __name__ == "__main__":
     cli()

@@ -1,0 +1,22 @@
+# config/workflows/analyze_local_project.yaml
+name: analyze_local_project
+description: "Analiza un proyecto local existente: seguridad + documentacion + estructura"
+keywords:
+  - "analiza el proyecto"
+  - "analiza proyecto local"
+  - "revisa el proyecto"
+  - "evalua el proyecto"
+  - "analisis completo"
+  - "revisa todo el proyecto"
+  - "escanea y documenta"
+tasks:
+  - type: scan_repository
+    assigned_to: security
+    capability: scan_repository
+  - type: analyze_local_project
+    assigned_to: documentation
+    capability: analyze_local_project
+    depends_on: [scan_repository]
+  - type: check_cloudwatch_alarms
+    assigned_to: sre
+    capability: check_cloudwatch_alarms

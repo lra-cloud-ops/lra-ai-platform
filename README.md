@@ -53,12 +53,8 @@ cp .env.example .env
 
 **Option A — Terminal (development, live logs)**
 ```bash
-# Terminal 1
 python api/app.py
-
-# Then open dashboard in browser
-start dashboard/index.html   # Windows
-# or open dashboard/index.html manually
+start dashboard/index.html
 ```
 
 **Option B — Docker (production/demo, runs in background)**
@@ -68,28 +64,13 @@ docker-compose up -d
 # Dashboard: http://localhost:3001
 ```
 
-**Stop the platform**
+**Stop**
 ```bash
-# Terminal
-Ctrl+C
-
-# Docker
-docker-compose down
+Ctrl+C          # Terminal
+docker-compose down  # Docker
 ```
 
-> Note: do not run both options at the same time — both use port 8000.
-
-### CLI
-
-```bash
-make status                                              # Platform health
-make review                                              # Multi-cloud review
-python cli/lra.py init "Crea un proyecto llamado X"     # Create project
-python cli/lra.py plan "escanea seguridad"              # Generate plan
-python cli/lra.py review aws                             # AWS infrastructure
-python cli/lra.py agents                                 # List agents
-python cli/lra.py workflows                              # List workflows
-```
+> Do not run both options at the same time — both use port 8000.
 
 ### Optional — Set up alias
 
@@ -97,11 +78,77 @@ python cli/lra.py workflows                              # List workflows
 # Add to ~/.bashrc
 alias lra="python /c/Users/lique/workspace/lra-ai-platform/cli/lra.py"
 source ~/.bashrc
+```
 
-# Then use directly
-lra status
-lra review aws
-lra init "Crea un proyecto llamado X"
+---
+
+## CLI Commands
+
+| Command | Description |
+|---|---|
+| `lra status` | Platform health (agents, tools, workflows) |
+| `lra agents` | List all agents with roles and tools |
+| `lra tools` | List tools by category |
+| `lra workflows` | List registered workflow templates |
+| `lra plan <intent>` | Generate Execution Plan without executing |
+| `lra init <intent>` | Execute a plan end-to-end |
+| `lra init <intent> --path <path>` | Execute plan on a specific local project |
+| `lra review aws\|azure\|gcp\|multicloud` | Live infrastructure review |
+| `lra scan <path>` | Deep security scan of a local project |
+| `lra scan --github org/repo` | Deep security scan of a GitHub repo |
+| `lra memory <project>` | Show org defaults + project context |
+
+---
+
+## lra scan — Deep Project Security Scan
+
+The `scan` command performs a full security and structure analysis of any project:
+
+```bash
+# Scan a local project
+lra scan C:/Users/lique/workspace/my-project
+
+# Scan a GitHub repository (clones temporarily, scans, cleans up)
+lra scan --github lra-cloud-ops/k8s-on-premise
+lra scan --github lra-cloud-ops/aws-terraform-devops-lab
+
+# Scan and generate documentation
+lra scan C:/Users/lique/workspace/my-project --save
+
+# Scan current directory
+lra scan .
+```
+
+**Output includes:**
+- Project structure and stack detection
+- Vulnerability scan (Trivy) — Critical, High, Medium by package
+- IaC misconfiguration scan (Checkov) — Terraform, Dockerfile, Kubernetes
+- Top issues with file locations
+- Recommended actions with fix commands
+- Overall PASS/FAIL status
+
+**Example output:**
+```
+PROJECT INFO
+  Name:        tbf-cloud-infra
+  Total files: 230
+  Stack:       Python, JavaScript, Java, Terraform, Kubernetes
+
+VULNERABILITIES (Trivy)
+  Critical: 5
+  High:     30
+  CRITICAL: [CVE-2026-41293] tomcat-embed-core → upgrade to 11.0.22
+
+MISCONFIGURATIONS (Checkov)
+  Terraform:  63 failed
+  Dockerfile:  3 failed
+
+STATUS: FAIL ❌
+
+RECOMMENDED ACTIONS:
+  1. Fix CRITICAL vulnerabilities immediately
+  2. Fix 63 Terraform misconfigurations
+     → Run: checkov -d . --framework terraform
 ```
 
 ---
@@ -112,15 +159,17 @@ lra init "Crea un proyecto llamado X"
 ```python
 from agents.documentation_agent import DocumentationAgent
 from tools.local.local_tool import LocalTool
+from tools.vcs.github.github_tool import GitHubTool
 from core.interfaces.task import Task
 
 agent = DocumentationAgent(name='docs', role='writer', description='')
 agent.register_tool(LocalTool())
+agent.register_tool(GitHubTool())
 
 task = Task(
     type='analyze_local_project',
     params={
-        'path': 'C:/Users/lique/workspace/mi-proyecto',
+        'path': 'C:/Users/lique/workspace/my-project',
         'save': True,
         'save_to': 'local',
     },
@@ -129,30 +178,8 @@ task = Task(
 result = agent.execute_task(task)
 ```
 
-### Local project → save docs to GitHub
+### GitHub repo → analyze and generate docs
 ```python
-task = Task(
-    type='analyze_local_project',
-    params={
-        'path': 'C:/Users/lique/workspace/mi-proyecto',
-        'save': True,
-        'save_to': 'github',
-        'repo': 'mi-repo',
-        'org': 'lra-cloud-ops',
-    },
-    assigned_to='documentation'
-)
-```
-
-### GitHub repo → analyze and save docs
-```python
-from agents.documentation_agent import DocumentationAgent
-from tools.vcs.github.github_tool import GitHubTool
-from core.interfaces.task import Task
-
-agent = DocumentationAgent(name='docs', role='writer', description='')
-agent.register_tool(GitHubTool())
-
 task = Task(
     type='analyze_repository',
     params={
@@ -162,7 +189,11 @@ task = Task(
     },
     assigned_to='documentation'
 )
-result = agent.execute_task(task)
+```
+
+### Analyze local project via CLI
+```bash
+lra init "analiza el proyecto" --path "C:/Users/lique/workspace/my-project"
 ```
 
 ---
@@ -191,8 +222,6 @@ Supervisor → TaskPlanner → ExecutionPlan (DAG)
                           Tool → Provider
                           (GitHub, AWS, kubectl, Terraform...)
 ```
-
-Key design decisions documented in [`docs/adr/`](docs/adr/).
 
 ---
 
@@ -232,7 +261,7 @@ Key design decisions documented in [`docs/adr/`](docs/adr/).
 
 ---
 
-## Workflows (8)
+## Workflows (9)
 
 | Workflow | Agents | Tasks |
 |---|---|---|
@@ -244,21 +273,7 @@ Key design decisions documented in [`docs/adr/`](docs/adr/).
 | `openshift_deploy` | OpenShift | get projects → create → deploy → expose |
 | `documentation_update` | Documentation | analyze repo → ADR → changelog |
 | `pr_review` | Reviewer | security scan → quality check → review report |
-
----
-
-## CLI Commands
-
-| Command | Description |
-|---|---|
-| `lra status` | Platform health (agents, tools, workflows) |
-| `lra agents` | List all agents with roles and tools |
-| `lra tools` | List tools by category |
-| `lra workflows` | List registered workflow templates |
-| `lra plan <intent>` | Generate Execution Plan without executing |
-| `lra init <intent>` | Create project end-to-end |
-| `lra review aws\|azure\|gcp\|multicloud` | Live infrastructure review |
-| `lra memory <project>` | Show org defaults + project context |
+| `analyze_local_project` | Security + SRE + Documentation | scan + alarms + analyze |
 
 ---
 
@@ -305,26 +320,21 @@ Permission Levels:
 | `WorkflowMemory` | One Execution Plan | JSON, archived on completion |
 | `ConversationMemory` | Current session | RAM only |
 
-Resolution hierarchy: **Conversation > Workflow > Project > Organization**
+Resolution: **Conversation > Workflow > Project > Organization**
 
 ---
 
-## Tests
+## Tests & CI/CD
 
 ```bash
-make test
-# 33 tests in 0.14s — TaskPlanner, GovernanceEngine, all 8 Agents
+make test   # 33 tests in 0.14s
 ```
 
----
-
-## CI/CD
-
 Every push to `main` triggers:
-- **Lint** → flake8 + YAML validation + Python syntax check
-- **Structure** → verifies all required files and agents exist
-- **Tests** → pytest 33 tests
-- **Security** → Trivy filesystem scan + Checkov IaC scan
+- Lint → flake8 + YAML validation + Python syntax
+- Structure → verifies all required files and agents
+- Tests → pytest 33 tests
+- Security → Trivy + Checkov scan
 
 ---
 
@@ -335,25 +345,17 @@ lra-ai-platform/
 ├── agents/                    # 8 Agent implementations
 ├── api/                       # REST API (FastAPI)
 │   └── routes/                # platform, projects, cloud
-├── cli/lra.py                 # CLI (Click)
+├── cli/lra.py                 # CLI (Click) — status, init, plan, review, scan, memory
 ├── config/
 │   ├── agents.yaml            # 8 agents configured
-│   ├── tools.yaml             # 14 live tools + catalogued
-│   ├── config.yaml            # Platform configuration
-│   └── workflows/             # 8 workflow templates
-├── core/
-│   ├── interfaces/            # Tool, Agent, Task, ExecutionPlan contracts
-│   ├── memory/                # 4 memory types + MemoryResolver
-│   ├── governance_engine.py   # RBAC, Policy, Approval, Audit
-│   ├── task_engine.py         # Lifecycle, retry, timeout, idempotency
-│   ├── workflow_engine.py     # DAG execution, parallelism
-│   ├── task_planner.py        # Intent → ExecutionPlan
-│   └── supervisor.py          # Single entry point
+│   ├── tools.yaml             # 14+ tools
+│   └── workflows/             # 9 workflow templates
+├── core/                      # Engine (Supervisor, Governance, Workflow, Task)
 ├── dashboard/index.html       # Web dashboard
 ├── docs/                      # 11 design docs + 4 ADRs
 ├── tests/                     # 33 tests
-├── tools/                     # 14 live tool integrations
-│   ├── cloud/                 # AWS, Azure, GCP + BaseCloudTool
+├── tools/
+│   ├── cloud/                 # AWS, Azure, GCP
 │   ├── containers/            # Kubernetes, OpenShift
 │   ├── iac/                   # Terraform, Ansible
 │   ├── local/                 # Local filesystem analysis
@@ -368,38 +370,17 @@ lra-ai-platform/
 
 ---
 
-## Makefile Commands
-
-```bash
-make install    # Install dependencies
-make run        # Start API server
-make status     # Platform status
-make review     # Multi-cloud review
-make test       # Run 33 tests
-make lint       # Run flake8
-make security   # Security scan plan
-make clean      # Remove cache
-```
-
----
-
 ## Tech Stack
 
 **Platform:** Python 3.11+, FastAPI, Uvicorn, Click, PyYAML, python-dotenv
 
-**Cloud SDKs:** boto3 (AWS), azure-sdk-for-python (Azure), gcloud CLI (GCP)
+**Cloud:** boto3 (AWS), azure-sdk (Azure), gcloud CLI (GCP)
 
-**DevOps Tools:** Terraform v1.15+, kubectl v1.35+, Ansible v2.10+ (WSL2), oc v4.22+
+**DevOps:** Terraform v1.15+, kubectl v1.35+, Ansible v2.10+ (WSL2), oc v4.22+
 
 **Security:** Trivy v0.69+, Checkov v3.3+
 
 **Observability:** CloudWatch (boto3), Prometheus HTTP API, Grafana HTTP API
-
-**VCS:** PyGithub
-
-**Design:** Task-centric architecture, Pub/Sub EventBus, Lazy loading,
-Plugin system, ADR-documented decisions, Fail-safe Governance,
-BaseCloudTool abstraction for multi-cloud extensibility
 
 ---
 
