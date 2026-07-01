@@ -1,0 +1,27 @@
+# config/workflows/deploy_eks.yaml
+name: deploy_eks
+description: "Despliega infraestructura EKS con Terraform y aplica manifests Kubernetes"
+keywords:
+  - "deploy eks"
+  - "despliega eks"
+  - "deploy kubernetes"
+  - "despliega kubernetes"
+  - "deploy en eks"
+  - "crear cluster"
+  - "create cluster"
+tasks:
+  - type: terraform_init
+    assigned_to: devops
+    capability: terraform_init
+  - type: terraform_plan
+    assigned_to: devops
+    capability: terraform_plan
+    depends_on: [terraform_init]
+  - type: terraform_apply
+    assigned_to: devops
+    capability: terraform_apply
+    depends_on: [terraform_plan]
+  - type: kubernetes_get_nodes
+    assigned_to: devops
+    capability: kubernetes_get_nodes
+    depends_on: [terraform_apply]

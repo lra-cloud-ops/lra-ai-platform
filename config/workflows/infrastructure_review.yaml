@@ -1,0 +1,22 @@
+# config/workflows/infrastructure_review.yaml
+name: infrastructure_review
+description: "Revisa infraestructura cloud multi-proveedor y genera informe SRE"
+keywords:
+  - "review infrastructure"
+  - "revisa infraestructura"
+  - "infrastructure review"
+  - "cloud review"
+  - "revisa la infraestructura"
+  - "estado de la infraestructura"
+tasks:
+  - type: review_multicloud
+    assigned_to: cloud_architect
+    capability: review_multicloud
+  - type: check_cloudwatch_alarms
+    assigned_to: sre
+    capability: check_cloudwatch_alarms
+    depends_on: [review_multicloud]
+  - type: generate_sre_report
+    assigned_to: sre
+    capability: generate_sre_report
+    depends_on: [check_cloudwatch_alarms]

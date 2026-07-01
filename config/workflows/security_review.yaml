@@ -1,0 +1,23 @@
+# config/workflows/security_review.yaml
+name: security_review
+description: "Escanea vulnerabilidades y misconfiguraciones en un repositorio"
+keywords:
+  - "security review"
+  - "escanea seguridad"
+  - "scan security"
+  - "revisa seguridad"
+  - "security scan"
+  - "vulnerabilidades"
+  - "scan vulnerabilities"
+tasks:
+  - type: scan_repository
+    assigned_to: security
+    capability: scan_repository
+  - type: list_open_prs
+    assigned_to: reviewer
+    capability: list_open_prs
+    depends_on: [scan_repository]
+  - type: generate_security_report
+    assigned_to: security
+    capability: generate_security_report
+    depends_on: [scan_repository]
