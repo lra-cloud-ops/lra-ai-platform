@@ -14,3 +14,4 @@ google-cloud-container>=2.30
 click>=8.0
 fastapi>=0.110
 uvicorn>=0.27
+checkov>=3.0
