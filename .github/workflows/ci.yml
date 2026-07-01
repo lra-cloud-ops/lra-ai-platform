@@ -14,7 +14,6 @@ jobs:
   lint:
     name: Lint & Syntax Check
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,8 +24,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: |
-          pip install flake8 pyyaml
+        run: pip install flake8 pyyaml
 
       - name: Lint Python files
         run: |
@@ -39,12 +37,10 @@ jobs:
       - name: Validate YAML configs
         run: |
           python -c "
-          import yaml
-          import glob
+          import yaml, glob
           files = glob.glob('config/**/*.yaml', recursive=True)
           for f in files:
-              with open(f) as fh:
-                  yaml.safe_load(fh)
+              yaml.safe_load(open(f))
               print(f'OK: {f}')
           print(f'Validated {len(files)} YAML files.')
           "
@@ -52,12 +48,11 @@ jobs:
       - name: Check Python syntax
         run: |
           python -m compileall agents/ core/ tools/ cli/ api/ -q
-          echo "✓ All Python files compile successfully"
+          echo "All Python files compile successfully"
 
   structure:
     name: Project Structure Check
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -79,9 +74,9 @@ jobs:
           )
           for f in "${files[@]}"; do
             if [ -f "$f" ]; then
-              echo "✓ $f"
+              echo "OK: $f"
             else
-              echo "✗ MISSING: $f"
+              echo "MISSING: $f"
               exit 1
             fi
           done
@@ -100,9 +95,27 @@ jobs:
           )
           for a in "${agents[@]}"; do
             if [ -f "$a" ]; then
-              echo "✓ $a"
+              echo "OK: $a"
             else
-              echo "✗ MISSING: $a"
+              echo "MISSING: $a"
               exit 1
             fi
           done
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pytest pyyaml
+
+      - name: Run tests
+        run: python -m pytest tests/ -v --tb=short
