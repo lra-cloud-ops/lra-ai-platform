@@ -70,7 +70,7 @@ agents:
     active: true
     tools:
       - github
-
+      - local
   reviewer:
     name: "Reviewer"
     role: "Code Reviewer"

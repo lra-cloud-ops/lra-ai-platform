@@ -295,3 +295,15 @@ tools:
       - list_dashboards
       - get_health
       - get_alerts
+# Local filesystem
+  local:
+    name: "Local Tool"
+    category: "local"
+    path: "tools/local"
+    active: true
+    actions:
+      - analyze_project
+      - read_file
+      - list_files
+      - detect_stack
+      - save_file
